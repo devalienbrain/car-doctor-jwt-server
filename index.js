@@ -1,19 +1,22 @@
-// Basic code to start NodeJS Server
+// BASIC CODE OF NODE SERVER
 const express = require("express");
 const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
 
+// MIDDLEWARE
+app.use(cors());
+
 app.get("/", (req, res) => {
-  res.send("SERVER is running!");
+  res.send("The Car Doctor SERVER is running!");
 });
 
 app.listen(port, () => {
-  console.log(`SERVER running on port: ${port}`);
+  console.log(`Car Doctor SERVER running on port: ${port}`);
 });
 
-// MongoDB Connection
-const { MongoClient, ServerApiVersion } = require("mongodb");
+// MONGODB CONNECTION CODE
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 require("dotenv").config();
 console.log(process.env.DB_USER, process.env.DB_PASS);
@@ -38,9 +41,28 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+    //GET SERVICES FROM DB
+    const serviceCollection = client.db("carDoctorDB").collection("services");
+
+    app.get("/services", async (req, res) => {
+      const cursor = serviceCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/services/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const options = {
+        projecttion: { title: 1, price: 1, service_id: 1, img: 1 },
+      };
+      const result = await serviceCollection.findOne(query, options);
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
