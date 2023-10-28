@@ -2,10 +2,11 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 // MIDDLEWARE
 app.use(cors());
+app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("The Car Doctor SERVER is running!");
@@ -58,6 +59,33 @@ async function run() {
         projecttion: { title: 1, price: 1, service_id: 1, img: 1 },
       };
       const result = await serviceCollection.findOne(query, options);
+      res.send(result);
+    });
+
+    // Buyer DB
+    const buyerCollection = client.db("carDoctorDB").collection("buyers");
+
+    // app.get("/buyers", async (req, res) => {
+    //   const cursor = buyerCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
+
+    // GET SOME DATA (CONDITIONAL) USING QUERY
+    app.get("/buyers", async (req, res) => {
+      let query = {};
+      console.log(req.query.email);
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
+      const result = await buyerCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post("/buyers", async (req, res) => {
+      const buyer = req.body;
+      console.log(buyer);
+      const result = await buyerCollection.insertOne(buyer);
       res.send(result);
     });
   } finally {
