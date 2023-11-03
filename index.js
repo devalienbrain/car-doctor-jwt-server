@@ -29,6 +29,32 @@ app.listen(port, () => {
   console.log(`Car Doctor SERVER running on port: ${port}`);
 });
 
+// CUSTOM MIDDLEWARE
+const logger = async (req, res, next) => {
+  // console.log("CALLED: ", req.host, req.originalUrl);
+  next();
+};
+
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies?.accessToken;
+  console.log("Token In Verify Middleware: ", token);
+  if (!token) {
+    return res.status(401).send({ message: "Not Authorized!" });
+  }
+  // JWT BuiltIn To Verify Token
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    // ERROR
+    if (err) {
+      console.log(err);
+      return res.status(401).send({ message: "Unauthorized Access!" });
+    }
+    // Decoded if Token is Valid
+    console.log(" Decoded Valid Token: ", decoded);
+    req.user = decoded;
+    next();
+  });
+};
+
 // MONGODB CONNECTION CODE
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
@@ -59,7 +85,7 @@ async function run() {
     //GET SERVICES FROM DB
     const serviceCollection = client.db("carDoctorDB").collection("services");
 
-    app.get("/services", async (req, res) => {
+    app.get("/services", logger, async (req, res) => {
       const cursor = serviceCollection.find();
       const result = await cursor.toArray();
       res.send(result);
@@ -85,9 +111,15 @@ async function run() {
     // });
 
     // GET SOME DATA (CONDITIONAL) USING QUERY
-    app.get("/buyers", async (req, res) => {
-      console.log(req.query.email);
-      console.log("Token From Client Side:", req.cookies.accessToken);
+    app.get("/buyers", logger, verifyToken, async (req, res) => {
+      // console.log(req.query.email);
+      // console.log("Token From Client Side:", req.cookies.accessToken);
+      console.log("USER In The Valid Token: ", req.user);
+
+      if (req.query.email !== req.user.email) {
+        return res.status(403).send({ message: "Forbidden!" });
+      }
+
       let query = {};
 
       if (req.query?.email) {
@@ -109,7 +141,7 @@ async function run() {
       const user = req.body;
       console.log(user);
       // res.send(user);
-      const token = jwt.sign(user, "process.env.ACCESS_TOKEN_SECRET", {
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1h",
       });
       // res.send(token);
