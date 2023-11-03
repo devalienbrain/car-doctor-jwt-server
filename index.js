@@ -4,8 +4,21 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 3000;
 
+// JSON WEB TOKEN
+const jwt = require("jsonwebtoken");
+
+// Cookie Parser
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
+
 // MIDDLEWARE
-app.use(cors());
+//To Send Token From Server Cross Origin Setup In Cors Middleware
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -73,8 +86,10 @@ async function run() {
 
     // GET SOME DATA (CONDITIONAL) USING QUERY
     app.get("/buyers", async (req, res) => {
-      let query = {};
       console.log(req.query.email);
+      console.log("Token From Client Side:", req.cookies.accessToken);
+      let query = {};
+
       if (req.query?.email) {
         query = { email: req.query.email };
       }
@@ -87,6 +102,26 @@ async function run() {
       console.log(buyer);
       const result = await buyerCollection.insertOne(buyer);
       res.send(result);
+    });
+
+    // Creating token (auth related api) in backend
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      // res.send(user);
+      const token = jwt.sign(user, "process.env.ACCESS_TOKEN_SECRET", {
+        expiresIn: "1h",
+      });
+      // res.send(token);
+
+      //  Set cookies with http only
+      res
+        .cookie("accessToken", token, {
+          httpOnly: true,
+          secure: false,
+          // sameSite: "none",
+        })
+        .send({ success: true });
     });
   } finally {
     // Ensures that the client will close when you finish/error
