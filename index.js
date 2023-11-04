@@ -170,7 +170,17 @@ async function run() {
 
     // PRODUCTS API
     app.get("/products", async (req, res) => {
-      const cursor = productsCollection.find();
+      const products = req.query;
+      // console.log("Pagination Products:", products);
+      // GET currentPage And itemsPerPage From Client Side
+      const page = parseInt(products.page);
+      const size = parseInt(products.size);
+
+      // const cursor = productsCollection.find();
+      const cursor = productsCollection
+        .find()
+        .skip(page * size) //SET HOW MANY WILL SKIP
+        .limit(size); //SET HOW MANY WILL RENDER IN A PAGE
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -179,7 +189,7 @@ async function run() {
     app.get("/productsCount", async (req, res) => {
       const count = await productsCollection.estimatedDocumentCount();
       console.log("Total Products= ", count);
-      res.send({count});
+      res.send({ count });
     });
   } finally {
     // Ensures that the client will close when you finish/error
