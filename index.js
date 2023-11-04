@@ -155,6 +155,32 @@ async function run() {
         })
         .send({ success: true });
     });
+
+    //CLEAR COOKIES AFTER LOGGED OUT A USER
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      console.log("Logging Out: ", user);
+      res.clearCookie("accessToken", { maxAge: 0 }).send({ success: true });
+    });
+
+    //  PRODUCTS DB FOR PAGINATION
+    const productsCollection = client
+      .db("carDoctorDB")
+      .collection("productsCollection");
+
+    // PRODUCTS API
+    app.get("/products", async (req, res) => {
+      const cursor = productsCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // PRODUCTS COUNT
+    app.get("/productsCount", async (req, res) => {
+      const count = await productsCollection.estimatedDocumentCount();
+      console.log("Total Products= ", count);
+      res.send({count});
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
